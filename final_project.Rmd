@@ -1,0 +1,178 @@
+---
+title: "finalproject"
+output:
+  html_document: default
+  word_document: default
+---
+step 1 Scatter plots Matrix
+see the relationship between Response Variables and Explanatory Variables and the scatter plots matrix shows that x3 and X5, x3 and x6, x3 and x7, x5 and x7, x6 and x7 have important interaction.
+```{r}
+library(MASS)
+df = read.csv("D:/Users/Haonan/Desktop/stat 350/project/real estate.csv")[,-1]
+head(df)
+summary(df)
+pairs(df)
+```
+
+step 2 variable selection
+Q-Q plot shows residuals may not follow Normal Distribution, we try to use square root transformation to fit it better.
+```{r}
+M0 = lm(df$Y.house.price.of.unit.area ~ df$X1.transaction.date + df$X2.house.age + 
+          df$X3.distance.to.the.nearest.MRT.station + df$X4.number.of.convenience.stores +
+          df$X5.latitude + df$X6.longitude + df$X7.distance.to.nearest.School +
+          df$X3.distance.to.the.nearest.MRT.station * df$X6.longitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X5.latitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X7.distance.to.nearest.School +
+          df$X5.latitude * df$X7.distance.to.nearest.School + 
+          df$X6.longitude * df$X7.distance.to.nearest.School)
+summary(M0)
+plot(M0,1)
+plot(M0,2)
+plot(M0,3)
+plot(M0,5)
+
+sresid = studres(M0)
+hist(sresid, freq=FALSE,main="Distribution of Studentized Residuals")
+xfit<-seq(min(sresid),max(sresid),length=40)
+yfit<-dnorm(xfit)
+lines(xfit, yfit,col = "red")
+
+plot(sresid, main = "Studentized Residuals VS Fitted", ylab = "Studentized Residua ls VS Fitted", xlab = "Fitted Values")
+abline(0,0)
+```
+
+Now, these residual plots for M0 model seem to be good, but all of these four plots shows a vary danger outlier, and we decide to delete it.
+```{r}
+M0 = lm(sqrt(df$Y.house.price.of.unit.area) ~ df$X1.transaction.date + df$X2.house.age + 
+          df$X3.distance.to.the.nearest.MRT.station + df$X4.number.of.convenience.stores +
+          df$X5.latitude + df$X6.longitude + df$X7.distance.to.nearest.School +
+          df$X3.distance.to.the.nearest.MRT.station * df$X6.longitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X5.latitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X7.distance.to.nearest.School +
+          df$X5.latitude * df$X7.distance.to.nearest.School + 
+          df$X6.longitude * df$X7.distance.to.nearest.School)
+summary(M0)
+plot(M0,1)
+plot(M0,2)
+plot(M0,3)
+plot(M0,5)
+
+df[c(114,229,331),]
+df = df[-c(114),]
+M0 = lm(sqrt(df$Y.house.price.of.unit.area) ~ df$X1.transaction.date + df$X2.house.age + 
+          df$X3.distance.to.the.nearest.MRT.station + df$X4.number.of.convenience.stores +
+          df$X5.latitude + df$X6.longitude + df$X7.distance.to.nearest.School +
+          df$X3.distance.to.the.nearest.MRT.station * df$X6.longitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X5.latitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X7.distance.to.nearest.School +
+          df$X5.latitude * df$X7.distance.to.nearest.School + 
+          df$X6.longitude * df$X7.distance.to.nearest.School)
+summary(M0)
+plot(M0,1)
+plot(M0,2)
+plot(M0,3)
+plot(M0,5)
+```
+
+Then we fit M1 which is deleted the variable whose p-value is large then 0.05.
+```{r}
+M1 =  lm(sqrt(df$Y.house.price.of.unit.area) ~ df$X1.transaction.date + df$X2.house.age + 
+           df$X3.distance.to.the.nearest.MRT.station + df$X4.number.of.convenience.stores +                                            df$X7.distance.to.nearest.School +
+           df$X3.distance.to.the.nearest.MRT.station * df$X6.longitude +
+           df$X3.distance.to.the.nearest.MRT.station * df$X5.latitude +
+           df$X5.latitude * df$X7.distance.to.nearest.School)
+summary(M1)
+plot(M1,1)
+plot(M1,2)
+plot(M1,3)
+plot(M1,5)
+```
+
+step 3 Stepwise Regression
+forward(X7 X3 X5 X4 X2 X1 X3*X5 X5*X7)
+```{r}
+inter = lm(sqrt(Y.house.price.of.unit.area) ~1, data=df)
+forward = step(inter, direction='forward', scope=formula(M0), trace=0)
+forward$anova
+round(forward$coefficients,5)
+```
+
+backward(-X3*X7)
+```{r}
+inter = lm(sqrt(Y.house.price.of.unit.area) ~1, data=df)
+forward = step(inter, direction='forward', scope=formula(M0), trace=0)
+forward$anova
+round(forward$coefficients,5)
+```
+
+Direction Step wise Selection(X7 X3 X5 X4 X2 X1 X3*X5 X5*X7)
+```{r}
+inter = lm(sqrt(Y.house.price.of.unit.area) ~1, data=df)
+both = step(inter, direction='both', scope=formula(M0), trace=0)
+both$anova
+round(both$coefficients,5)
+```
+In step 3, we find out 2 more models which is M2 and M3 and we show them in step4.
+
+step 4 The AIC and BIC model selection
+```{r}
+M0 = lm(sqrt(df$Y.house.price.of.unit.area) ~ df$X1.transaction.date + df$X2.house.age + 
+          df$X3.distance.to.the.nearest.MRT.station + df$X4.number.of.convenience.stores +
+          df$X5.latitude + df$X6.longitude + df$X7.distance.to.nearest.School +
+          df$X3.distance.to.the.nearest.MRT.station * df$X6.longitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X5.latitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X7.distance.to.nearest.School +
+          df$X5.latitude * df$X7.distance.to.nearest.School + 
+          df$X6.longitude * df$X7.distance.to.nearest.School)
+
+M1 =  lm(sqrt(df$Y.house.price.of.unit.area) ~ df$X1.transaction.date + df$X2.house.age + 
+           df$X3.distance.to.the.nearest.MRT.station + df$X4.number.of.convenience.stores +                                            df$X7.distance.to.nearest.School +
+           df$X3.distance.to.the.nearest.MRT.station * df$X6.longitude +
+           df$X3.distance.to.the.nearest.MRT.station * df$X5.latitude +
+           df$X5.latitude * df$X7.distance.to.nearest.School)
+
+M2 = lm(sqrt(df$Y.house.price.of.unit.area) ~ df$X1.transaction.date + df$X2.house.age + 
+          df$X3.distance.to.the.nearest.MRT.station + df$X4.number.of.convenience.stores +
+          df$X5.latitude + df$X7.distance.to.nearest.School +
+          df$X3.distance.to.the.nearest.MRT.station * df$X5.latitude +
+          df$X5.latitude * df$X7.distance.to.nearest.School)
+summary(M2)
+plot(M2,1)
+plot(M2,2)
+plot(M2,3)
+plot(M2,5)
+
+
+
+
+M3 = lm(sqrt(df$Y.house.price.of.unit.area) ~ df$X1.transaction.date + df$X2.house.age + 
+          df$X3.distance.to.the.nearest.MRT.station + df$X4.number.of.convenience.stores +
+          df$X5.latitude + df$X6.longitude + df$X7.distance.to.nearest.School +
+          df$X3.distance.to.the.nearest.MRT.station * df$X6.longitude +
+          df$X3.distance.to.the.nearest.MRT.station * df$X5.latitude +
+          df$X5.latitude * df$X7.distance.to.nearest.School + 
+          df$X6.longitude * df$X7.distance.to.nearest.School)
+summary(M3)
+plot(M3,1)
+plot(M3,2)
+plot(M3,3)
+plot(M3,5)
+
+
+
+AIC(M0)
+AIC(M1)
+AIC(M2)
+AIC(M3)
+BIC(M0)
+BIC(M1)
+BIC(M2)
+BIC(M3)
+```
+Because AIC does not punish the irrelevant variables very hard, we do not judge the four models by AIC. So, BIC is our way of testing the model. Finally, we use t test and ANOVA to test the final model.
+
+step 5 ANOVA
+```{r}
+anova(M2)
+```
+After ANOVA test only one p-value of the interaction variable is a little bit larger than 0.05. So M2 is a good model to explain which and how the factors influence house price per unit.
